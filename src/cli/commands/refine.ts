@@ -180,18 +180,20 @@ export async function refineCommand(): Promise<void> {
 
       const proposal = await provider.proposeSpecificationUpdate(ctx);
 
-      // Always include the question resolution explicitly
-      if (!proposal.resolve_questions) {
-        proposal.resolve_questions = [];
-      }
-      // Ensure the resolution is included even if the model missed it
-      if (!proposal.resolve_questions.some((r) => r.question_id === q.id)) {
-        proposal.resolve_questions.push({ question_id: q.id, answer: userAnswer });
-      }
+      // Ensure the resolution is included even if the model missed it,
+      // but never mutate the LLM-returned object directly.
+      const resolvedQuestions = proposal.resolve_questions ?? [];
+      const alreadyResolved = resolvedQuestions.some((r) => r.question_id === q.id);
+      const finalProposal = {
+        ...proposal,
+        resolve_questions: alreadyResolved
+          ? resolvedQuestions
+          : [...resolvedQuestions, { question_id: q.id, answer: userAnswer }],
+      };
 
       spinner.stop();
 
-      const result = engine.apply(proposal);
+      const result = engine.apply(finalProposal);
       commitResult(engine, result, store);
 
       if (result.ok) {

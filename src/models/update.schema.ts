@@ -42,8 +42,8 @@ const RequirementSchema = z.object({
     confidence: z.enum(["LOW", "MEDIUM", "HIGH", "ABSOLUTE"]),
     reference: z.string().optional(),
   }),
-  dependencies: z.array(z.string()),
-  acceptance_criteria: z.array(AcceptanceCriteriaSchema),
+  dependencies: z.array(z.string()).default([]),
+  acceptance_criteria: z.array(AcceptanceCriteriaSchema).default([]),
 });
 
 // Supersede Operation

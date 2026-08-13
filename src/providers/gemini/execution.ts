@@ -3,6 +3,7 @@ import path from "path";
 import { GoogleGenAI } from "@google/genai";
 import type { ExecutionProvider, ExecutionContext, ExecutionResult } from "../execution.js";
 import { parseExecutionResponse } from "../../models/execution.schema.js";
+import { extractFirstJson, stripCodeFences } from "../json-utils.js";
 
 const SYSTEM_PROMPT_EXECUTION = `You are Yokai, an advanced AI execution agent.
 Your objective is to read a detailed Software Specification and write the actual code to fulfill its requirements.
@@ -81,12 +82,8 @@ export class GeminiExecutionProvider implements ExecutionProvider {
 
       const text = response.text;
       if (!text) throw new Error("Empty response from model");
-
-      // Strip markdown code fences if present
-      const cleaned = text
-        .replace(/^```(?:json)?\n?/m, "")
-        .replace(/\n?```$/m, "")
-        .trim();
+      // Strip markdown code fences and extract first valid JSON object.
+      const cleaned = extractFirstJson(stripCodeFences(text));
 
       const parsed = parseExecutionResponse(JSON.parse(cleaned));
       

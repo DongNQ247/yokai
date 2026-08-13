@@ -214,13 +214,9 @@ function extractEnvKeys(root: string, signals: RepoSignal[]): void {
 export function inspectRepository(root: string = process.cwd()): RepoContext {
   const signals: RepoSignal[] = [];
 
-  try {
-    extractFromPackageJson(root, signals);
-    extractFromConfigFiles(root, signals);
-    extractEnvKeys(root, signals);
-  } catch {
-    // Non-fatal: if inspection fails, we return an empty context
-  }
+  try { extractFromPackageJson(root, signals); } catch { /* non-fatal */ }
+  try { extractFromConfigFiles(root, signals); } catch { /* non-fatal */ }
+  try { extractEnvKeys(root, signals); } catch { /* non-fatal */ }
 
   // Deduplicate by value
   const seen = new Set<string>();

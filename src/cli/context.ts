@@ -25,7 +25,7 @@ export function loadEngine(store: YokaiStore): SpecificationEngine | null {
     printError("No specification found. Run `yokai \"<your intent>\"` first.");
     return null;
   }
-  const history = store.readHistory();
+  const history = store.readHistory(spec);
   return new SpecificationEngine(spec, history);
 }
 

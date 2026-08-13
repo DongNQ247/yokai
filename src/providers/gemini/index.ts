@@ -6,11 +6,14 @@
  *
  * API Key: GEMINI_API_KEY env variable (or configured in .yokai/config.yaml)
  */
+import fs from "fs";
+import path from "path";
 import { GoogleGenAI } from "@google/genai";
 import { z } from "zod";
 import type { ModelProvider, ModelContext } from "../interface.js";
 import type { SpecificationUpdate } from "../../models/update.js";
 import { parseSpecificationUpdate } from "../../models/update.schema.js";
+import { extractFirstJson, stripCodeFences } from "../json-utils.js";
 import {
   SYSTEM_PROMPT_BASE,
   ANALYZE_INTENT_PROMPT,
@@ -18,13 +21,6 @@ import {
   REFINE_WITH_ANSWER_PROMPT,
 } from "../prompts.js";
 
-// ---------------------------------------------------------------------------
-// JSON response schema for Gemini structured output
-// ---------------------------------------------------------------------------
-
-// We ask Gemini to produce a JSON object and parse it manually,
-// since the SpecificationUpdate schema is complex and recursive schema
-// validation is better handled by our own Engine (Stage A).
 const RESPONSE_MIME_TYPE = "application/json";
 
 // ---------------------------------------------------------------------------
@@ -98,18 +94,14 @@ export class GeminiProvider implements ModelProvider {
         throw new Error("Empty response from model");
       }
 
-      // Strip markdown code fences if present
-      const cleaned = text
-        .replace(/^```(?:json)?\n?/m, "")
-        .replace(/\n?```$/m, "")
-        .trim();
+      // Strip markdown code fences if present.
+      // NOTE: do NOT use /m flag — $ must match end-of-string, not end-of-line.
+      const cleaned = extractFirstJson(stripCodeFences(text));
 
       try {
         const rawJson = JSON.parse(cleaned);
         return parseSpecificationUpdate(rawJson);
       } catch (parseError) {
-        const fs = await import("fs");
-        const path = await import("path");
         const debugPath = path.join(process.cwd(), ".yokai", "debug_failed_json.txt");
         if (fs.existsSync(path.dirname(debugPath))) {
           fs.writeFileSync(debugPath, cleaned, "utf-8");
