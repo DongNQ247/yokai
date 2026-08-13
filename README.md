@@ -10,7 +10,8 @@ Yokai is not a coding assistant or a chatbot. It is a strict **compiler** that t
 
 1. **Specification as Source of Truth:** The `specification.yaml` is the canonical record. It belongs in version control alongside your code.
 2. **Deterministic State Machine:** Yokai enforces strict lifecycle rules. Requirements move from `ASSUMED` to `CONFIRMED`. Specifications move from `DRAFT` to `ACCEPTED`. LLMs cannot arbitrarily modify the state without passing validation.
-3. **Pluggable LLMs:** LLMs (Gemini, OpenAI) are merely "providers" that propose JSON updates. If an LLM hallucinates, Yokai rejects the proposal and rolls back the state.
+3. **Robust Isolation & OCC:** `YokaiStore` implements Optimistic Concurrency Control (OCC) to prevent stale writes if multiple agents or users mutate the specification simultaneously.
+4. **Pluggable & Resilient LLMs:** LLMs (Gemini, OpenAI) are merely "providers" that propose JSON updates. Yokai uses custom robust parsing to extract JSON even from truncated or malformed LLM outputs. If an LLM hallucinates logically, Yokai rejects the proposal and safely rolls back the state.
 
 ## Installation
 
@@ -72,8 +73,15 @@ yokai approve
 ## Supported Providers
 Yokai currently supports the following model providers for Intent Analysis:
 - **OpenAI** (`gpt-4o`, `gpt-4o-mini`, `o3-mini`, `gpt-4.1`)
-- **Gemini** (`gemini-3.5-flash`, `gemini-3.6-flash`, `gemini-3.1-pro`)
+- **Gemini** (`gemini-2.5-flash`, `gemini-3.5-flash`, `gemini-3.6-flash`, `gemini-3.1-pro`)
 - **Mock** (Local deterministic testing provider)
+
+## Testing
+Yokai includes a full E2E Integration Test pipeline that runs without API keys (by injecting captured LLM output). It tests the Engine's 2-stage validation, Store OCC, and Approval flows.
+
+```bash
+node integration-test.mjs
+```
 
 ## Future Roadmap
 - **Phase 3:** Execution Providers (`yokai run`) — Hands the approved specification to a coding agent (e.g. Codex or Claude) to implement the code.
