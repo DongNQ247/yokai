@@ -2,7 +2,14 @@ import { z } from "zod";
 import type { SpecificationUpdate } from "./update.js";
 
 // Requirement Status Enum
-const RequirementStatusSchema = z.enum(["UNKNOWN", "ASSUMED", "CONFIRMED", "SUPERSEDED"]);
+const RequirementStatusSchema = z.enum([
+  "CANDIDATE",
+  "ASSUMED",
+  "QUESTION_PENDING",
+  "CONFIRMED",
+  "REJECTED",
+  "SUPERSEDED",
+]);
 
 // Acceptance Criteria
 const AcceptanceCriteriaSchema = z.object({
