@@ -26,13 +26,13 @@ const RequirementPatchSchema = z.object({
 // Requirement
 const RequirementSchema = z.object({
   id: z.string(),
-  type: z.enum(["FEATURE", "CONSTRAINT", "INTEGRATION"]),
+  type: z.enum(["FEATURE", "BUSINESS_RULE", "CONSTRAINT", "NON_FUNCTIONAL"]),
   title: z.string(),
   description: z.string(),
   status: RequirementStatusSchema,
   provenance: z.object({
     source: z.enum(["USER_EXPLICIT", "USER_CLARIFICATION", "REPOSITORY_INFERENCE", "AGENT_ASSUMPTION"]),
-    confidence: z.enum(["ABSOLUTE", "HIGH", "LOW"]),
+    confidence: z.enum(["LOW", "MEDIUM", "HIGH", "ABSOLUTE"]),
   }),
   dependencies: z.array(z.string()),
   acceptance_criteria: z.array(AcceptanceCriteriaSchema),
@@ -59,7 +59,7 @@ const DecisionSchema = z.object({
   rationale: z.string(),
   provenance: z.object({
     source: z.enum(["USER_EXPLICIT", "USER_CLARIFICATION", "REPOSITORY_INFERENCE", "AGENT_ASSUMPTION"]),
-    confidence: z.enum(["ABSOLUTE", "HIGH", "LOW"]),
+    confidence: z.enum(["LOW", "MEDIUM", "HIGH", "ABSOLUTE"]),
   }),
 });
 
@@ -73,9 +73,16 @@ const AcceptanceCriteriaAdditionSchema = z.object({
 const QuestionSchema = z.object({
   id: z.string(),
   topic: z.string(),
-  options: z.array(z.string()),
-  blocking: z.boolean(),
+  context: z.string(),
+  type: z.enum(["SINGLE_CHOICE", "MULTIPLE_CHOICE", "OPEN_ENDED", "BOOLEAN"]),
+  options: z.array(z.string()).optional(),
+  suggested_answer: z.string().optional(),
   impact: z.enum(["HIGH", "MEDIUM", "LOW"]),
+  blocking: z.boolean(),
+  priority: z.object({
+    score: z.number(),
+    reason: z.string(),
+  }),
 });
 
 // Specification Update Schema
