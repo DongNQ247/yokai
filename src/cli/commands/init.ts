@@ -100,6 +100,10 @@ export async function initCommand(): Promise<void> {
   const answers = await inquirer.prompt<{
     project_name: string;
     provider: "gemini" | "openai" | "mock";
+    execution_provider: "gemini" | "mock";
+    configure_codex: boolean;
+    codex_command: string;
+    codex_sandbox: string;
     gemini_model: string;
     api_key_env: string;
     openai_model: string;
@@ -122,6 +126,36 @@ export async function initCommand(): Promise<void> {
         { name: "Mock            (no API key, for testing)", value: "mock" },
       ],
       default: "openai",
+    },
+    {
+      type: "list",
+      name: "execution_provider",
+      message: "Execution provider for `yokai run`:",
+      choices: [
+        { name: "Gemini          (JSON file writer)", value: "gemini" },
+        { name: "Mock            (no code changes, for testing)", value: "mock" },
+      ],
+      default: "gemini",
+    },
+    {
+      type: "confirm",
+      name: "configure_codex",
+      message: "Configure Codex CLI defaults for `yokai codex run`?",
+      default: true,
+    },
+    {
+      type: "input",
+      name: "codex_command",
+      message: "Codex CLI command:",
+      default: "codex",
+      when: (a) => a.configure_codex,
+    },
+    {
+      type: "input",
+      name: "codex_sandbox",
+      message: "Codex sandbox for execution:",
+      default: "workspace-write",
+      when: (a) => a.configure_codex,
     },
     {
       type: "list",
@@ -175,6 +209,17 @@ export async function initCommand(): Promise<void> {
   const config: YokaiConfig = {
     project_name: answers.project_name,
     model_provider: answers.provider,
+    execution_provider: answers.execution_provider,
+    ...(answers.configure_codex
+      ? {
+          codex: {
+            command: answers.codex_command,
+            sandbox: answers.codex_sandbox,
+            json: true,
+            ephemeral: true,
+          },
+        }
+      : {}),
     ...(answers.provider === "gemini"
       ? {
           gemini: {

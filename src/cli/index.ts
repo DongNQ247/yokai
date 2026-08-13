@@ -16,6 +16,7 @@ import { refineCommand } from "./commands/refine.js";
 import { specCommand } from "./commands/spec.js";
 import { approveCommand } from "./commands/approve.js";
 import { runCommand } from "./commands/run.js";
+import { codexRunCommand } from "./commands/codex.js";
 
 // Fix Node.js 18+ native fetch IPv6 ECONNRESET issues with Google APIs
 dns.setDefaultResultOrder("ipv4first");
@@ -78,6 +79,19 @@ program
   .option("--req <id>", "Execute a specific requirement by ID")
   .action(async (options: { req?: string }) => {
     await runCommand(options);
+  });
+
+// ── yokai codex run ────────────────────────────────────────────────────────
+const codex = program
+  .command("codex")
+  .description("Run Yokai execution workflows through the local Codex CLI");
+
+codex
+  .command("run")
+  .description("Execute the ACCEPTED specification using Codex CLI")
+  .option("--req <id>", "Execute a specific requirement by ID")
+  .action(async (options: { req?: string }) => {
+    await codexRunCommand(options);
   });
 
 program.parseAsync(process.argv).catch((err: unknown) => {

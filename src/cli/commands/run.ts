@@ -1,16 +1,19 @@
 import chalk from "chalk";
 import { YokaiStore } from "../../store/index.js";
 import { loadEngine, resolveExecutionProvider, buildRepoContext } from "../context.js";
-import type { ExecutionContext } from "../../providers/execution.js";
+import type { ExecutionContext, ExecutionProvider } from "../../providers/execution.js";
 import { printBanner, printSection, printError, printWarning, printSuccess, createSpinner } from "../ui.js";
 
 export interface RunOptions {
   req?: string; // Optional: execute a specific requirement
+  provider?: ExecutionProvider | undefined;
+  sectionTitle?: string | undefined;
+  initialMessage?: string | undefined;
 }
 
 export async function runCommand(options: RunOptions) {
   printBanner();
-  printSection("Execution");
+  printSection(options.sectionTitle ?? "Execution");
   const store = new YokaiStore();
 
   const engine = loadEngine(store);
@@ -25,13 +28,13 @@ export async function runCommand(options: RunOptions) {
   }
 
   console.log();
-  const initialText = options.req 
+  const initialText = options.initialMessage ?? (options.req
       ? `Executing requirement ${options.req}...` 
-      : "Executing specification (this may take a while)...";
+      : "Executing specification (this may take a while)...");
   let spinner = createSpinner(initialText);
 
   try {
-    const provider = await resolveExecutionProvider(store);
+    const provider = options.provider ?? await resolveExecutionProvider(store);
     const repoContext = buildRepoContext(store);
 
     const ctx: ExecutionContext = {

@@ -115,6 +115,12 @@ export async function resolveExecutionProvider(store: YokaiStore): Promise<impor
     return new MockExecutionProvider();
   }
 
+  if ((providerType as string) === "codex") {
+    printError("`execution_provider: codex` is no longer used by `yokai run`.");
+    printWarning("Use `yokai codex run` to execute through the local Codex CLI.");
+    process.exit(1);
+  }
+
   // Default: Gemini
   const { createGeminiExecutionProvider } = await import("../providers/gemini/execution.js");
   const apiKeyEnv = config.gemini?.api_key_env ?? "GEMINI_API_KEY";

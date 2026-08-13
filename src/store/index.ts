@@ -33,6 +33,14 @@ export interface YokaiConfig {
     api_key_env?: string | undefined;
     base_url?: string | undefined;
   } | undefined;
+  codex?: {
+    command?: string | undefined;
+    sandbox?: string | undefined;
+    approval_mode?: string | undefined;
+    json?: boolean | undefined;
+    ephemeral?: boolean | undefined;
+    extra_args?: string[] | undefined;
+  } | undefined;
 }
 
 const DEFAULT_CONFIG: YokaiConfig = {

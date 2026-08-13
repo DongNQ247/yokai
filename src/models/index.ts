@@ -42,3 +42,6 @@ export type {
   UpdateEventData,
   SpecificationApprovedData,
 } from "./history.js";
+
+export type { FileChange, ExecutionResponse } from "./execution.schema.js";
+export { ExecutionResponseSchema, FileChangeSchema, parseExecutionResponse } from "./execution.schema.js";
