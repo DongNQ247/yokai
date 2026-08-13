@@ -70,6 +70,20 @@ Once all `[BLOCKING]` questions are resolved, you can accept the specification. 
 yokai approve
 ```
 
+### 6. Execute
+Hand the approved specification to an Execution Agent (e.g., Gemini) to actually implement the code.
+
+```bash
+yokai run
+```
+
+### 7. Verify (WIP)
+Deterministically check the implementation against the Acceptance Criteria defined in the specification.
+
+```bash
+yokai verify
+```
+
 ## Supported Providers
 Yokai currently supports the following model providers for Intent Analysis:
 - **OpenAI** (`gpt-4o`, `gpt-4o-mini`, `o3-mini`, `gpt-4.1`)
@@ -84,8 +98,9 @@ node integration-test.mjs
 ```
 
 ## Future Roadmap
-- **Phase 3:** Execution Providers (`yokai run`) — Hands the approved specification to a coding agent (e.g. Codex or Claude) to implement the code.
-- **Phase 4:** Verification (`yokai verify`) — Deterministically checks the implementation against the Acceptance Criteria defined in the specification.
+- **VSCode Extension** — Live synchronization between `specification.yaml` and editor context.
+- **Multi-Agent Orchestration** — Allow specialized agents (Frontend, Backend, DBA) to collaborate on executing a single specification.
+- **Human-in-the-loop CI/CD** — Pause deployments automatically if verification fails.
 
 ## License
 MIT
