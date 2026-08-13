@@ -27,7 +27,9 @@ import type {
   RequirementEventData,
   QuestionResolvedData,
   SpecificationApprovedData,
+  ExecutionEventData,
 } from "../models/history.js";
+import type { ExecutionResult } from "../providers/execution.js";
 import { validateProposal } from "./proposal-validation.js";
 import { validateCanonicalState } from "./canonical-validation.js";
 import type { ValidationResult } from "./proposal-validation.js";
@@ -392,6 +394,42 @@ export class SpecificationEngine {
   /** Returns the current canonical Specification (immutable copy). */
   getSpecification(): Specification {
     return cloneSpec(this.spec);
+  }
+
+  /**
+   * Records the outcome of an execution run to history.
+   * Does not mutate the canonical Specification state.
+   */
+  recordExecution(result: ExecutionResult, correlationId?: string): { events: HistoryEvent[] } {
+    const cid = correlationId ?? generateId("exec");
+    const events: HistoryEvent[] = [];
+
+    events.push({
+      id: generateId("evt"),
+      type: "execution.started",
+      timestamp: nowIso(), // Ideally passed in, but we approximate here
+      actor: "SYSTEM",
+      correlation_id: cid,
+      data: {},
+    });
+
+    const completionType = result.ok ? "execution.completed" : "execution.failed";
+    const data: ExecutionEventData = {
+      files_changed: result.files_changed.length > 0 ? result.files_changed : undefined,
+      log: result.log ? result.log : undefined,
+      errors: result.errors && result.errors.length > 0 ? result.errors : undefined,
+    };
+
+    events.push({
+      id: generateId("evt"),
+      type: completionType,
+      timestamp: nowIso(),
+      actor: "SYSTEM",
+      correlation_id: cid,
+      data,
+    });
+
+    return { events };
   }
 
   /** Returns the full history event log (immutable copy). */

@@ -365,4 +365,28 @@ describe("Yokai Full Lifecycle (no LLM)", () => {
     expect(old?.status).toBe("SUPERSEDED");
     expect(newReq?.status).toBe("CANDIDATE");
   });
+
+  it("records execution events in history", () => {
+    const spec = createSpecification("my-app", "Execute something");
+    const engine = new SpecificationEngine(spec);
+
+    const result = {
+      ok: true,
+      files_changed: ["src/index.ts"],
+      log: "Executed successfully.",
+    };
+
+    const { events } = engine.recordExecution(result, "exec-001");
+    
+    // We expect 2 events: execution.started and execution.completed
+    expect(events).toHaveLength(2);
+    expect(events[0]?.type).toBe("execution.started");
+    expect(events[1]?.type).toBe("execution.completed");
+    
+    // Check data payload
+    const data = events[1]?.data as import("../../src/models/history.js").ExecutionEventData;
+    expect(data.files_changed).toContain("src/index.ts");
+    expect(data.log).toBe("Executed successfully.");
+    expect(events[1]?.correlation_id).toBe("exec-001");
+  });
 });
