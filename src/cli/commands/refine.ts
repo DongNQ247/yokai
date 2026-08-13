@@ -192,7 +192,7 @@ export async function refineCommand(): Promise<void> {
       spinner.stop();
 
       const result = engine.apply(proposal);
-      commitResult(result, store);
+      commitResult(engine, result, store);
 
       if (result.ok) {
         answered++;

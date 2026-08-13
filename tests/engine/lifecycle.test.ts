@@ -29,6 +29,22 @@ import type { SpecificationUpdate } from "../../src/models/update.js";
 import type { ModelContext } from "../../src/providers/interface.js";
 
 // ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function applyCommit(engine: SpecificationEngine, update: SpecificationUpdate, cid?: string) {
+  const result = engine.apply(update, cid);
+  if (result.ok) engine.commit(result.specification, result.events);
+  return result;
+}
+
+function approveCommit(engine: SpecificationEngine) {
+  const result = engine.approve();
+  if (result.ok) engine.commit(result.specification, result.events);
+  return result;
+}
+
+// ---------------------------------------------------------------------------
 // Fixture: a realistic first proposal from the MockProvider
 // ---------------------------------------------------------------------------
 
@@ -104,7 +120,7 @@ describe("Yokai Full Lifecycle (no LLM)", () => {
 
     const ctx: ModelContext = { specification: engine.getSpecification() };
     const proposal = await mock.analyzeIntent(ctx);
-    const result = engine.apply(proposal);
+    const result = applyCommit(engine, proposal);
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -123,7 +139,7 @@ describe("Yokai Full Lifecycle (no LLM)", () => {
 
     const ctx: ModelContext = { specification: engine.getSpecification() };
     const proposal = await mock.analyzeIntent(ctx);
-    engine.apply(proposal);
+    applyCommit(engine, proposal);
 
     const history = engine.getHistory();
     const types = history.map((e) => e.type);
@@ -140,7 +156,7 @@ describe("Yokai Full Lifecycle (no LLM)", () => {
     const engine = new SpecificationEngine(spec);
 
     // First, add a requirement in ASSUMED state
-    engine.apply({ add_requirements: [INITIAL_PROPOSAL.add_requirements![0]!] });
+    applyCommit(engine, { add_requirements: [INITIAL_PROPOSAL.add_requirements![0]!] });
 
     // Then confirm it
     const confirmUpdate: SpecificationUpdate = {
@@ -153,7 +169,7 @@ describe("Yokai Full Lifecycle (no LLM)", () => {
       ],
     };
 
-    const result = engine.apply(confirmUpdate);
+    const result = applyCommit(engine, confirmUpdate);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
 
@@ -165,7 +181,7 @@ describe("Yokai Full Lifecycle (no LLM)", () => {
     const spec = createSpecification("my-app", "Add authentication");
     const engine = new SpecificationEngine(spec);
 
-    engine.apply(INITIAL_PROPOSAL);
+    applyCommit(engine, INITIAL_PROPOSAL);
 
     const resolution: SpecificationUpdate = {
       resolve_questions: [
@@ -173,7 +189,7 @@ describe("Yokai Full Lifecycle (no LLM)", () => {
       ],
     };
 
-    const result = engine.apply(resolution);
+    const result = applyCommit(engine, resolution);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
 
@@ -184,12 +200,12 @@ describe("Yokai Full Lifecycle (no LLM)", () => {
     const spec = createSpecification("my-app", "Add authentication");
     const engine = new SpecificationEngine(spec);
 
-    engine.apply(INITIAL_PROPOSAL);
-    engine.apply({
+    applyCommit(engine, INITIAL_PROPOSAL);
+    applyCommit(engine, {
       resolve_questions: [{ question_id: "Q-001", answer: "Supabase" }],
     });
 
-    const result = engine.approve();
+    const result = approveCommit(engine);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
 
@@ -200,11 +216,11 @@ describe("Yokai Full Lifecycle (no LLM)", () => {
     const spec = createSpecification("my-app", "Add authentication");
     const engine = new SpecificationEngine(spec);
 
-    engine.apply(INITIAL_PROPOSAL);
-    engine.apply({
+    applyCommit(engine, INITIAL_PROPOSAL);
+    applyCommit(engine, {
       resolve_questions: [{ question_id: "Q-001", answer: "Supabase" }],
     });
-    engine.approve();
+    approveCommit(engine);
 
     const finalSpec = engine.getSpecification();
     const assumed = finalSpec.requirements.filter((r) => r.status === "ASSUMED");
@@ -217,9 +233,9 @@ describe("Yokai Full Lifecycle (no LLM)", () => {
     const engine = new SpecificationEngine(spec);
 
     // Apply proposal WITH blocking question — do NOT resolve it
-    engine.apply(INITIAL_PROPOSAL);
+    applyCommit(engine, INITIAL_PROPOSAL);
 
-    const result = engine.approve();
+    const result = approveCommit(engine);
     expect(result.ok).toBe(false);
     if (result.ok) return;
     expect(result.errors[0]).toMatch(/blocking question/i);
@@ -229,7 +245,7 @@ describe("Yokai Full Lifecycle (no LLM)", () => {
     const spec = createSpecification("my-app", "Add authentication");
     const engine = new SpecificationEngine(spec);
 
-    engine.apply({ add_requirements: [INITIAL_PROPOSAL.add_requirements![0]!] });
+    applyCommit(engine, { add_requirements: [INITIAL_PROPOSAL.add_requirements![0]!] });
 
     // Try to jump from ASSUMED → SUPERSEDED (invalid transition)
     const badUpdate: SpecificationUpdate = {
@@ -242,7 +258,7 @@ describe("Yokai Full Lifecycle (no LLM)", () => {
       ],
     };
 
-    const result = engine.apply(badUpdate);
+    const result = applyCommit(engine, badUpdate);
     expect(result.ok).toBe(false);
     if (result.ok) return;
     expect(result.errors.some((e) => e.includes("INVALID_TRANSITION"))).toBe(true);
@@ -262,7 +278,7 @@ describe("Yokai Full Lifecycle (no LLM)", () => {
       ],
     };
 
-    const result = engine.apply(badUpdate);
+    const result = applyCommit(engine, badUpdate);
     expect(result.ok).toBe(false);
     if (result.ok) return;
     expect(result.errors.some((e) => e.includes("UNKNOWN_ID"))).toBe(true);
@@ -276,7 +292,7 @@ describe("Yokai Full Lifecycle (no LLM)", () => {
     const mock = new MockProvider({ analyzeIntent: INITIAL_PROPOSAL });
     const ctx: ModelContext = { specification: engine.getSpecification(), correlation_id: cid };
     const proposal = await mock.analyzeIntent(ctx);
-    engine.apply(proposal, cid);
+    applyCommit(engine, proposal, cid);
 
     const history = engine.getHistory();
     const cycleEvents = history.filter((e) => e.correlation_id === cid);
@@ -289,7 +305,7 @@ describe("Yokai Full Lifecycle (no LLM)", () => {
     const engine = new SpecificationEngine(spec);
 
     // Add REQ-001 in ASSUMED state (correct initial state)
-    engine.apply({
+    applyCommit(engine, {
       add_requirements: [
         {
           id: "REQ-001",
@@ -307,7 +323,7 @@ describe("Yokai Full Lifecycle (no LLM)", () => {
     });
 
     // Confirm it via the proper state transition
-    engine.apply({
+    applyCommit(engine, {
       modify_requirements: [
         {
           id: "REQ-001",
@@ -339,7 +355,7 @@ describe("Yokai Full Lifecycle (no LLM)", () => {
       ],
     };
 
-    const result = engine.apply(supersedeUpdate);
+    const result = applyCommit(engine, supersedeUpdate);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
 

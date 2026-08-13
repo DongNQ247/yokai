@@ -30,10 +30,11 @@ export function loadEngine(store: YokaiStore): SpecificationEngine | null {
 }
 
 /**
- * Applies an Engine result: if successful, persists the new spec and
- * appends events to history. Returns false on failure.
+ * Applies an Engine result: if successful, persists the new spec using OCC and
+ * updates the engine's in-memory state. Returns false on failure.
  */
 export function commitResult(
+  engine: SpecificationEngine,
   result: { ok: boolean; specification?: Specification; events: HistoryEvent[]; errors?: string[] },
   store: YokaiStore,
   { printErrors = true }: { printErrors?: boolean } = {}
@@ -44,8 +45,17 @@ export function commitResult(
     }
     return false;
   }
-  store.writeSpecification(result.specification!);
-  store.appendHistory(result.events);
+  
+  const previousUpdatedAt = engine.getSpecification().metadata.updated_at;
+  
+  try {
+    store.commitTransaction(result.specification!, result.events, previousUpdatedAt);
+    engine.commit(result.specification!, result.events);
+  } catch (err) {
+    printError(err instanceof Error ? err.message : String(err));
+    process.exit(1);
+  }
+  
   return true;
 }
 

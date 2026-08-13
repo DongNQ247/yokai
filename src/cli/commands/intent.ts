@@ -56,7 +56,7 @@ export async function intentCommand(rawIntent: string): Promise<void> {
     const projectName = config.project_name ?? path.basename(process.cwd());
     spec = createSpecification(projectName, rawIntent);
     engine = new SpecificationEngine(spec);
-    store.writeSpecification(spec);
+    store.commitTransaction(spec, [], undefined);
     printSuccess(`Initialized new specification for "${projectName}"`);
   }
 
@@ -85,7 +85,7 @@ export async function intentCommand(rawIntent: string): Promise<void> {
   // ── 5. Apply proposal through Engine ─────────────────────────────────────
   const result = engine.apply(proposal);
 
-  if (!commitResult(result, store)) {
+  if (!commitResult(engine, result, store)) {
     console.log();
     printWarning("The proposal contained invalid operations and was rejected.");
     printWarning("This is a LLM formatting issue — not a fatal error.");

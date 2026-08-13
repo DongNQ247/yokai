@@ -266,7 +266,6 @@ export class SpecificationEngine {
         correlation_id: cid,
         data: { errors: proposalResult.errors.map((e) => `[${e.code}] ${e.message}`) },
       };
-      this.history.push(...proposalEvents, rejectionEvent);
       return {
         ok: false,
         errors: proposalResult.errors.map((e) => `[${e.code}] ${e.message}`),
@@ -299,7 +298,6 @@ export class SpecificationEngine {
         correlation_id: cid,
         data: { errors: canonicalResult.errors.map((e) => `[${e.code}] ${e.message}`) },
       };
-      this.history.push(...proposalEvents, ...mutationEvents, rejectionEvent);
       return {
         ok: false,
         errors: canonicalResult.errors.map((e) => `[${e.code}] ${e.message}`),
@@ -308,23 +306,30 @@ export class SpecificationEngine {
     }
 
     // --- Commit ---
+    const commitTimestamp = mutated.metadata.updated_at;
     const commitEvent: HistoryEvent = {
       id: generateId("evt"),
       type: "update.applied",
-      timestamp: nowIso(),
+      timestamp: commitTimestamp,
       actor: "ENGINE",
       correlation_id: cid,
       data: {},
     };
 
-    this.spec = mutated;
-    this.history.push(...proposalEvents, ...mutationEvents, commitEvent);
-
     return {
       ok: true,
-      specification: cloneSpec(this.spec),
+      specification: mutated,
       events: [...proposalEvents, ...mutationEvents, commitEvent],
     };
+  }
+
+  /**
+   * Commits an applied result to the engine's in-memory state.
+   * This should be called only AFTER successful persistence to the store.
+   */
+  commit(spec: Specification, newEvents: HistoryEvent[]): void {
+    this.spec = cloneSpec(spec);
+    this.history.push(...newEvents);
   }
 
   /**
@@ -349,26 +354,25 @@ export class SpecificationEngine {
       };
     }
 
-    const prevStatus: SpecificationStatus = this.spec.metadata.status;
-    this.spec.metadata.status = "ACCEPTED";
-    this.spec.metadata.updated_at = nowIso();
+    const clonedSpec = cloneSpec(this.spec);
+    const prevStatus: SpecificationStatus = clonedSpec.metadata.status;
+    clonedSpec.metadata.status = "ACCEPTED";
+    clonedSpec.metadata.updated_at = nowIso();
 
-    const assumedCount = this.spec.requirements.filter((r) => r.status === "ASSUMED").length;
+    const assumedCount = clonedSpec.requirements.filter((r) => r.status === "ASSUMED").length;
 
     const event: HistoryEvent<SpecificationApprovedData> = {
       id: generateId("evt"),
       type: "specification.approved",
-      timestamp: nowIso(),
+      timestamp: clonedSpec.metadata.updated_at,
       actor: "USER",
       correlation_id: cid,
       data: {
-        version: this.spec.version,
-        requirement_count: this.spec.requirements.length,
+        version: clonedSpec.version,
+        requirement_count: clonedSpec.requirements.length,
         assumed_count: assumedCount,
       },
     };
-
-    this.history.push(event);
 
     // Warn in the result data if there are still ASSUMED requirements
     const warnings =
@@ -378,7 +382,7 @@ export class SpecificationEngine {
 
     return {
       ok: true,
-      specification: cloneSpec(this.spec),
+      specification: clonedSpec,
       events: [event],
       // Note: warnings are embedded in events data; callers should surface them
       ...(warnings.length > 0 ? { warnings } : {}),

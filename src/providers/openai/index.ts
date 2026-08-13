@@ -12,6 +12,7 @@
 import OpenAI from "openai";
 import type { ModelProvider, ModelContext } from "../interface.js";
 import type { SpecificationUpdate } from "../../models/update.js";
+import { parseSpecificationUpdate } from "../../models/update.schema.js";
 import {
   SYSTEM_PROMPT_BASE,
   ANALYZE_INTENT_PROMPT,
@@ -83,11 +84,30 @@ export class OpenAIProvider implements ModelProvider {
     });
 
     const text = response.choices[0]?.message?.content ?? "{}";
+    const cleaned = text
+      .replace(/^```(?:json)?\n?/m, "")
+      .replace(/\n?```$/m, "")
+      .trim();
+
     try {
-      return JSON.parse(text) as SpecificationUpdate;
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      throw new Error(`OpenAIProvider: Failed to parse model response — ${message}`);
+      const rawJson = JSON.parse(cleaned);
+      return parseSpecificationUpdate(rawJson);
+    } catch (parseError) {
+      const fs = await import("fs");
+      const path = await import("path");
+      const debugPath = path.join(process.cwd(), ".yokai", "debug_failed_json.txt");
+      if (fs.existsSync(path.dirname(debugPath))) {
+        fs.writeFileSync(debugPath, cleaned, "utf-8");
+      }
+      
+      let msg = String(parseError);
+      if (parseError instanceof Error) {
+        msg = parseError.message;
+        if ("issues" in parseError) {
+          msg = JSON.stringify((parseError as any).issues, null, 2);
+        }
+      }
+      throw new Error(`OpenAIProvider JSON/Schema parse error: ${msg}\nRaw output saved to .yokai/debug_failed_json.txt`);
     }
   }
 

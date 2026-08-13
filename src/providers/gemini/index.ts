@@ -9,6 +9,7 @@
 import { GoogleGenAI } from "@google/genai";
 import type { ModelProvider, ModelContext } from "../interface.js";
 import type { SpecificationUpdate } from "../../models/update.js";
+import { parseSpecificationUpdate } from "../../models/update.schema.js";
 import {
   SYSTEM_PROMPT_BASE,
   ANALYZE_INTENT_PROMPT,
@@ -103,21 +104,25 @@ export class GeminiProvider implements ModelProvider {
         .trim();
 
       try {
-        return JSON.parse(cleaned) as SpecificationUpdate;
+        const rawJson = JSON.parse(cleaned);
+        return parseSpecificationUpdate(rawJson);
       } catch (parseError) {
-        // Fallback: try appending "}" in case the model forgot the final bracket (common LLM quirk)
-        try {
-          return JSON.parse(cleaned + "\n}") as SpecificationUpdate;
-        } catch (fallbackError) {
-          // Dump the raw text to a debug file to see why it failed
-          const fs = await import("fs");
-          const path = await import("path");
-          const debugPath = path.join(process.cwd(), ".yokai", "debug_failed_json.txt");
-          if (fs.existsSync(path.dirname(debugPath))) {
-            fs.writeFileSync(debugPath, cleaned, "utf-8");
-          }
-          throw new Error(`JSON parse error: ${parseError instanceof Error ? parseError.message : String(parseError)}. Raw output saved to .yokai/debug_failed_json.txt`);
+        const fs = await import("fs");
+        const path = await import("path");
+        const debugPath = path.join(process.cwd(), ".yokai", "debug_failed_json.txt");
+        if (fs.existsSync(path.dirname(debugPath))) {
+          fs.writeFileSync(debugPath, cleaned, "utf-8");
         }
+        
+        let msg = String(parseError);
+        if (parseError instanceof Error) {
+          msg = parseError.message;
+          // Format Zod errors nicely
+          if ("issues" in parseError) {
+            msg = JSON.stringify((parseError as any).issues, null, 2);
+          }
+        }
+        throw new Error(`JSON/Schema parse error: ${msg}\nRaw output saved to .yokai/debug_failed_json.txt`);
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);

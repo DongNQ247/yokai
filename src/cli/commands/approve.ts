@@ -102,7 +102,7 @@ export async function approveCommand(): Promise<void> {
   // ── Apply approval through Engine ─────────────────────────────────────────
   const result = engine.approve();
 
-  if (!commitResult(result, store)) {
+  if (!commitResult(engine, result, store)) {
     process.exit(1);
   }
 
