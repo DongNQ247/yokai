@@ -40,6 +40,7 @@ const RequirementSchema = z.object({
   provenance: z.object({
     source: z.enum(["USER_EXPLICIT", "USER_CLARIFICATION", "REPOSITORY_INFERENCE", "AGENT_ASSUMPTION"]),
     confidence: z.enum(["LOW", "MEDIUM", "HIGH", "ABSOLUTE"]),
+    reference: z.string().optional(),
   }),
   dependencies: z.array(z.string()),
   acceptance_criteria: z.array(AcceptanceCriteriaSchema),
@@ -67,6 +68,7 @@ const DecisionSchema = z.object({
   provenance: z.object({
     source: z.enum(["USER_EXPLICIT", "USER_CLARIFICATION", "REPOSITORY_INFERENCE", "AGENT_ASSUMPTION"]),
     confidence: z.enum(["LOW", "MEDIUM", "HIGH", "ABSOLUTE"]),
+    reference: z.string().optional(),
   }),
 });
 

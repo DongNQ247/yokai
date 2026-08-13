@@ -1,10 +1,11 @@
 import chalk from "chalk";
 import { YokaiStore } from "../../store/index.js";
 import { loadEngine } from "../context.js";
-import { printSection, printError, printWarning, printSuccess, createSpinner } from "../ui.js";
+import { printBanner, printSection, printError, printWarning, printSuccess, createSpinner } from "../ui.js";
 import { runVerificationCommand } from "../../core/verification.js";
 
 export async function verifyCommand() {
+  printBanner();
   printSection("Verification");
   const store = new YokaiStore();
   const config = store.readConfig();

@@ -10,6 +10,7 @@
  * API Key: OPENAI_API_KEY env variable (or configured in .yokai/config.yaml)
  */
 import OpenAI from "openai";
+import { z } from "zod";
 import type { ModelProvider, ModelContext } from "../interface.js";
 import type { SpecificationUpdate } from "../../models/update.js";
 import { parseSpecificationUpdate } from "../../models/update.schema.js";
@@ -18,7 +19,7 @@ import {
   ANALYZE_INTENT_PROMPT,
   PROPOSE_QUESTIONS_PROMPT,
   REFINE_WITH_ANSWER_PROMPT,
-} from "../gemini/prompts.js";
+} from "../prompts.js";
 
 export interface OpenAIProviderConfig {
   apiKey: string;
@@ -101,11 +102,10 @@ export class OpenAIProvider implements ModelProvider {
       }
       
       let msg = String(parseError);
-      if (parseError instanceof Error) {
+      if (parseError instanceof z.ZodError) {
+        msg = JSON.stringify(parseError.issues, null, 2);
+      } else if (parseError instanceof Error) {
         msg = parseError.message;
-        if ("issues" in parseError) {
-          msg = JSON.stringify((parseError as any).issues, null, 2);
-        }
       }
       throw new Error(`OpenAIProvider JSON/Schema parse error: ${msg}\nRaw output saved to .yokai/debug_failed_json.txt`);
     }

@@ -97,7 +97,8 @@ export class GeminiExecutionProvider implements ExecutionProvider {
         const absolutePath = path.resolve(ctx.cwd, file.path);
         
         // Security check: ensure we don't write outside cwd
-        if (!absolutePath.startsWith(path.resolve(ctx.cwd))) {
+        const root = path.resolve(ctx.cwd);
+        if (absolutePath !== root && !absolutePath.startsWith(root + path.sep)) {
           console.warn(`Skipping invalid path outside cwd: ${file.path}`);
           continue;
         }

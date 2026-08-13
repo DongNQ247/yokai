@@ -7,6 +7,7 @@
  * API Key: GEMINI_API_KEY env variable (or configured in .yokai/config.yaml)
  */
 import { GoogleGenAI } from "@google/genai";
+import { z } from "zod";
 import type { ModelProvider, ModelContext } from "../interface.js";
 import type { SpecificationUpdate } from "../../models/update.js";
 import { parseSpecificationUpdate } from "../../models/update.schema.js";
@@ -15,7 +16,7 @@ import {
   ANALYZE_INTENT_PROMPT,
   PROPOSE_QUESTIONS_PROMPT,
   REFINE_WITH_ANSWER_PROMPT,
-} from "./prompts.js";
+} from "../prompts.js";
 
 // ---------------------------------------------------------------------------
 // JSON response schema for Gemini structured output
@@ -115,12 +116,10 @@ export class GeminiProvider implements ModelProvider {
         }
         
         let msg = String(parseError);
-        if (parseError instanceof Error) {
+        if (parseError instanceof z.ZodError) {
+          msg = JSON.stringify(parseError.issues, null, 2);
+        } else if (parseError instanceof Error) {
           msg = parseError.message;
-          // Format Zod errors nicely
-          if ("issues" in parseError) {
-            msg = JSON.stringify((parseError as any).issues, null, 2);
-          }
         }
         throw new Error(`JSON/Schema parse error: ${msg}\nRaw output saved to .yokai/debug_failed_json.txt`);
       }
