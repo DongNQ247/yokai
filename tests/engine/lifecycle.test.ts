@@ -389,4 +389,25 @@ describe("Yokai Full Lifecycle (no LLM)", () => {
     expect(data.log).toBe("Executed successfully.");
     expect(events[1]?.correlation_id).toBe("exec-001");
   });
+  it("records verification events in history", () => {
+    const spec = createSpecification("my-app", "Verify something");
+    const engine = new SpecificationEngine(spec);
+
+    const result = {
+      ok: true,
+      log: "Tests passed.",
+    };
+
+    const { events } = engine.recordVerification("npm test", result, "verify-001");
+    
+    expect(events).toHaveLength(2);
+    expect(events[0]?.type).toBe("verification.started");
+    expect(events[1]?.type).toBe("verification.completed");
+    
+    const data = events[1]?.data as import("../../src/models/history.js").VerificationEventData;
+    expect(data.test_command).toBe("npm test");
+    expect(data.log).toBe("Tests passed.");
+    expect(data.ok).toBe(true);
+    expect(events[1]?.correlation_id).toBe("verify-001");
+  });
 });

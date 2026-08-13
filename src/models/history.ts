@@ -35,7 +35,10 @@ export type HistoryEventType =
   | "specification.approved"
   | "execution.started"
   | "execution.completed"
-  | "execution.failed";
+  | "execution.failed"
+  | "verification.started"
+  | "verification.completed"
+  | "verification.failed";
 
 export interface HistoryEvent<T = unknown> {
   id: string;
@@ -89,6 +92,13 @@ export interface SpecificationApprovedData {
 
 export interface ExecutionEventData {
   files_changed?: string[] | undefined;
+  log?: string | undefined;
+  errors?: string[] | undefined;
+}
+
+export interface VerificationEventData {
+  test_command?: string | undefined;
+  ok?: boolean | undefined;
   log?: string | undefined;
   errors?: string[] | undefined;
 }

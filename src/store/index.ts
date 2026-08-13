@@ -33,6 +33,9 @@ export interface YokaiConfig {
     api_key_env?: string | undefined;
     base_url?: string | undefined;
   } | undefined;
+  verification?: {
+    test_command?: string | undefined;
+  } | undefined;
 }
 
 const DEFAULT_CONFIG: YokaiConfig = {

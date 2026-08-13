@@ -432,6 +432,45 @@ export class SpecificationEngine {
     return { events };
   }
 
+  /**
+   * Records the outcome of a verification run to history.
+   * Does not mutate the canonical Specification state.
+   */
+  recordVerification(
+    command: string,
+    result: { ok: boolean; log: string; errors?: string[] },
+    correlationId?: string
+  ): { events: HistoryEvent[] } {
+    const cid = correlationId ?? generateId("verify");
+    const events: HistoryEvent[] = [];
+
+    events.push({
+      id: generateId("evt"),
+      type: "verification.started",
+      timestamp: nowIso(),
+      actor: "SYSTEM",
+      correlation_id: cid,
+      data: { test_command: command },
+    });
+
+    const completionType = result.ok ? "verification.completed" : "verification.failed";
+    events.push({
+      id: generateId("evt"),
+      type: completionType,
+      timestamp: nowIso(),
+      actor: "SYSTEM",
+      correlation_id: cid,
+      data: {
+        test_command: command,
+        ok: result.ok,
+        log: result.log ? result.log : undefined,
+        errors: result.errors && result.errors.length > 0 ? result.errors : undefined,
+      },
+    });
+
+    return { events };
+  }
+
   /** Returns the full history event log (immutable copy). */
   getHistory(): HistoryEvent[] {
     return [...this.history];

@@ -16,6 +16,7 @@ import { refineCommand } from "./commands/refine.js";
 import { specCommand } from "./commands/spec.js";
 import { approveCommand } from "./commands/approve.js";
 import { runCommand } from "./commands/run.js";
+import { verifyCommand } from "./commands/verify.js";
 
 // Fix Node.js 18+ native fetch IPv6 ECONNRESET issues with Google APIs
 dns.setDefaultResultOrder("ipv4first");
@@ -78,6 +79,14 @@ program
   .option("--req <id>", "Execute a specific requirement by ID")
   .action(async (options: { req?: string }) => {
     await runCommand(options);
+  });
+
+// ── yokai verify ─────────────────────────────────────────────────────────
+program
+  .command("verify")
+  .description("Run the verification command defined in .yokai/config.yaml against the codebase")
+  .action(async () => {
+    await verifyCommand();
   });
 
 program.parseAsync(process.argv).catch((err: unknown) => {

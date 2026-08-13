@@ -104,6 +104,8 @@ export async function initCommand(): Promise<void> {
     api_key_env: string;
     openai_model: string;
     openai_api_key_env: string;
+    configure_verification: boolean;
+    test_command: string;
     update_gitignore: boolean;
   }>([
     {
@@ -165,6 +167,19 @@ export async function initCommand(): Promise<void> {
     },
     {
       type: "confirm",
+      name: "configure_verification",
+      message: "Configure a verification command for `yokai verify`? (e.g. npm test, pytest)",
+      default: true,
+    },
+    {
+      type: "input",
+      name: "test_command",
+      message: "Test command:",
+      default: "npm test",
+      when: (a) => a.configure_verification,
+    },
+    {
+      type: "confirm",
       name: "update_gitignore",
       message: "Add .yokai/history.jsonl and .yokai/config.yaml to .gitignore?\n  (specification.yaml will remain tracked — it is your source of truth)",
       default: true,
@@ -188,6 +203,13 @@ export async function initCommand(): Promise<void> {
           openai: {
             model: answers.openai_model,
             api_key_env: answers.openai_api_key_env,
+          },
+        }
+      : {}),
+    ...(answers.configure_verification
+      ? {
+          verification: {
+            test_command: answers.test_command,
           },
         }
       : {}),
