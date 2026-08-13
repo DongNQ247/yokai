@@ -69,44 +69,14 @@ Once all `[BLOCKING]` questions are resolved, you can accept the specification. 
 yokai approve
 ```
 
-### 6. Execute
-Run the accepted specification against the repository. Yokai records execution history after the provider finishes.
-
-```bash
-yokai run
-yokai run --req REQ-001
-```
-
-To explicitly hand execution to the local Codex CLI, use:
-
-```bash
-yokai codex run
-yokai codex run --req REQ-001
-```
-
 ## Supported Providers
 Yokai currently supports the following model providers for Intent Analysis:
 - **OpenAI** (`gpt-4o`, `gpt-4o-mini`, `o3-mini`, `gpt-4.1`)
 - **Gemini** (`gemini-3.5-flash`, `gemini-3.6-flash`, `gemini-3.1-pro`)
 - **Mock** (Local deterministic testing provider)
 
-Yokai also supports execution providers for `yokai run`:
-- **Gemini** (`execution_provider: gemini`) — asks Gemini for complete file contents and writes them to disk.
-- **Mock** (`execution_provider: mock`) — deterministic no-op style provider for tests.
-
-`yokai codex run` always uses Codex CLI regardless of the configured `execution_provider`.
-
-Example `.yokai/config.yaml` Codex CLI configuration:
-
-```yaml
-codex:
-  command: codex
-  sandbox: workspace-write
-  json: true
-  ephemeral: true
-```
-
 ## Future Roadmap
+- **Phase 3:** Execution Providers (`yokai run`) — Hands the approved specification to a coding agent (e.g. Codex or Claude) to implement the code.
 - **Phase 4:** Verification (`yokai verify`) — Deterministically checks the implementation against the Acceptance Criteria defined in the specification.
 
 ## License
