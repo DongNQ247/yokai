@@ -103,6 +103,32 @@ export async function resolveProvider(store: YokaiStore): Promise<ModelProvider>
 }
 
 /**
+ * Resolves the ExecutionProvider based on .yokai/config.yaml.
+ * Falls back to MockExecutionProvider in test environments.
+ */
+export async function resolveExecutionProvider(store: YokaiStore): Promise<import("../providers/execution.js").ExecutionProvider> {
+  const config = store.readConfig();
+  const providerType = config.execution_provider ?? "gemini";
+
+  if (providerType === "mock") {
+    const { MockExecutionProvider } = await import("../providers/mock/execution.js");
+    return new MockExecutionProvider();
+  }
+
+  // Default: Gemini
+  const { createGeminiExecutionProvider } = await import("../providers/gemini/execution.js");
+  const apiKeyEnv = config.gemini?.api_key_env ?? "GEMINI_API_KEY";
+  const model = config.gemini?.model;
+  try {
+    return createGeminiExecutionProvider({ apiKeyEnv, ...(model !== undefined ? { model } : {}) });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    printError(msg);
+    process.exit(1);
+  }
+}
+
+/**
  * Build full repository context string from inspector output.
  */
 export function buildRepoContext(store: YokaiStore): string {

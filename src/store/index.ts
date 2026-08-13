@@ -23,6 +23,7 @@ const CONFIG_FILE = "config.yaml";
 export interface YokaiConfig {
   project_name?: string | undefined;
   model_provider: "gemini" | "openai" | "mock";
+  execution_provider?: "gemini" | "mock" | "claude" | undefined;
   gemini?: {
     model?: string | undefined;
     api_key_env?: string | undefined;
@@ -36,6 +37,7 @@ export interface YokaiConfig {
 
 const DEFAULT_CONFIG: YokaiConfig = {
   model_provider: "gemini",
+  execution_provider: "gemini",
   gemini: {
     model: "gemini-2.5-flash",
     api_key_env: "GEMINI_API_KEY",
