@@ -1,0 +1,13 @@
+node_modules/
+dist/
+coverage/
+.env
+
+# Yokai — local state (keep specification.yaml tracked)
+.yokai/history.jsonl
+.yokai/config.yaml
+.yokai/debug_failed_json.txt
+
+# Editor / OS
+.DS_Store
+.vscode/

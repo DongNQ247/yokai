@@ -1,0 +1,130 @@
+/**
+ * YokaiStore — persists canonical state to .yokai/ directory.
+ *
+ * File layout:
+ *   .yokai/specification.yaml  — canonical specification
+ *   .yokai/history.jsonl       — append-only event log
+ *   .yokai/config.yaml         — provider and project config
+ *
+ * Invariant: specification.yaml is only written when the Specification
+ * Engine has successfully validated the new canonical state.
+ */
+import fs from "fs";
+import path from "path";
+import { dump as yamlDump, load as yamlLoad } from "js-yaml";
+import type { Specification } from "../models/specification.js";
+import type { HistoryEvent } from "../models/history.js";
+
+const YOKAI_DIR = ".yokai";
+const SPEC_FILE = "specification.yaml";
+const HISTORY_FILE = "history.jsonl";
+const CONFIG_FILE = "config.yaml";
+
+export interface YokaiConfig {
+  project_name?: string | undefined;
+  model_provider: "gemini" | "openai" | "mock";
+  gemini?: {
+    model?: string | undefined;
+    api_key_env?: string | undefined;
+  } | undefined;
+  openai?: {
+    model?: string | undefined;
+    api_key_env?: string | undefined;
+    base_url?: string | undefined;
+  } | undefined;
+}
+
+const DEFAULT_CONFIG: YokaiConfig = {
+  model_provider: "gemini",
+  gemini: {
+    model: "gemini-2.5-flash",
+    api_key_env: "GEMINI_API_KEY",
+  },
+};
+
+export class YokaiStore {
+  private root: string;
+  private yokaiDir: string;
+
+  constructor(root: string = process.cwd()) {
+    this.root = root;
+    this.yokaiDir = path.join(root, YOKAI_DIR);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Directory management
+  // ---------------------------------------------------------------------------
+
+  ensureDir(): void {
+    if (!fs.existsSync(this.yokaiDir)) {
+      fs.mkdirSync(this.yokaiDir, { recursive: true });
+    }
+  }
+
+  isInitialized(): boolean {
+    return fs.existsSync(path.join(this.yokaiDir, SPEC_FILE));
+  }
+
+  // ---------------------------------------------------------------------------
+  // Specification
+  // ---------------------------------------------------------------------------
+
+  writeSpecification(spec: Specification): void {
+    this.ensureDir();
+    const yamlStr = yamlDump(spec, { lineWidth: 120, noRefs: true });
+    fs.writeFileSync(path.join(this.yokaiDir, SPEC_FILE), yamlStr, "utf-8");
+  }
+
+  readSpecification(): Specification | null {
+    const filePath = path.join(this.yokaiDir, SPEC_FILE);
+    if (!fs.existsSync(filePath)) return null;
+    const raw = fs.readFileSync(filePath, "utf-8");
+    return yamlLoad(raw) as Specification;
+  }
+
+  // ---------------------------------------------------------------------------
+  // History (append-only)
+  // ---------------------------------------------------------------------------
+
+  appendHistory(events: HistoryEvent[]): void {
+    this.ensureDir();
+    const filePath = path.join(this.yokaiDir, HISTORY_FILE);
+    const lines = events.map((e) => JSON.stringify(e)).join("\n") + "\n";
+    fs.appendFileSync(filePath, lines, "utf-8");
+  }
+
+  readHistory(): HistoryEvent[] {
+    const filePath = path.join(this.yokaiDir, HISTORY_FILE);
+    if (!fs.existsSync(filePath)) return [];
+    const raw = fs.readFileSync(filePath, "utf-8");
+    return raw
+      .split("\n")
+      .filter((line) => line.trim())
+      .map((line) => JSON.parse(line) as HistoryEvent);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Config
+  // ---------------------------------------------------------------------------
+
+  writeConfig(config: YokaiConfig): void {
+    this.ensureDir();
+    const yamlStr = yamlDump(config, { lineWidth: 120 });
+    fs.writeFileSync(path.join(this.yokaiDir, CONFIG_FILE), yamlStr, "utf-8");
+  }
+
+  readConfig(): YokaiConfig {
+    const filePath = path.join(this.yokaiDir, CONFIG_FILE);
+    if (!fs.existsSync(filePath)) return { ...DEFAULT_CONFIG };
+    const raw = fs.readFileSync(filePath, "utf-8");
+    return { ...DEFAULT_CONFIG, ...(yamlLoad(raw) as Partial<YokaiConfig>) };
+  }
+
+  get projectRoot(): string {
+    return this.root;
+  }
+
+  get yokaiDirPath(): string {
+    return this.yokaiDir;
+  }
+}
